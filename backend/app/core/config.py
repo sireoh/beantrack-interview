@@ -122,4 +122,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Process-wide settings singleton (reads `.env` from the current working directory)."""
-    return Settings()  # type: ignore[call-arg]  # required fields come from the environment
+    return Settings()  # required fields come from the environment

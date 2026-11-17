@@ -116,7 +116,12 @@ def update_tv_progress(
 
     episode_count = len(entry.show.episodes)
     max_index = max(episode_count - 1, 0)
-    requested = request.set_to if request.set_to is not None else entry.current_episode + request.delta
+    if request.set_to is not None:
+        requested = request.set_to
+    else:
+        # The request validator guarantees delta is set whenever set_to is not.
+        assert request.delta is not None
+        requested = entry.current_episode + request.delta
     current_episode = min(max(requested, 0), max_index)
     metadata: dict[str, Any] = request.current_episode_metadata.model_dump()
     entry.current_episode = current_episode
@@ -136,6 +141,15 @@ def update_tv_status(db: Session, *, user: User, imdb: str, status: WatchStatus)
     entry.status = status
     if status == WatchStatus.COMPLETED:
         _jump_to_last_episode(entry)
+    db.commit()
+    return entry
+
+
+def update_tv_rating(db: Session, *, user: User, imdb: str, rating: int | None) -> UserTvShow:
+    entry = tvlists_repo.get_entry(db, user.tvlist.tvlist_id, imdb)
+    if entry is None:
+        raise NotFoundError(TV_NOT_FOUND)
+    entry.rating = rating
     db.commit()
     return entry
 

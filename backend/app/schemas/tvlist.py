@@ -32,6 +32,7 @@ class TvListEntryOut(ORMModel):
     status: WatchStatus
     current_episode: int
     current_episode_metadata: EpisodeMetadata | None
+    rating: int | None
     added_at: datetime
     updated_at: datetime
 
@@ -74,3 +75,8 @@ class TvProgressRequest(RequestModel):
         if (self.set_to is None) == (self.delta is None):
             raise ValueError("Exactly one of set_to or delta is required")
         return self
+
+
+class TvRatingRequest(RequestModel):
+    # Required key: send null to clear. strict rejects 7.5 and "7".
+    rating: int | None = Field(..., ge=1, le=10, strict=True)

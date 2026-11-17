@@ -62,6 +62,8 @@ class UserTvShow(Base):
     status: Mapped[WatchStatus] = mapped_column(watch_status_column_type())
     current_episode: Mapped[int] = mapped_column("current_episode", Integer, default=0)
     current_episode_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    # The user's own 1-10 rating; None means unrated. The range is checked by the request schema.
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     added_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 

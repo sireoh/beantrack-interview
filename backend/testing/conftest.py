@@ -37,15 +37,15 @@ def settings(tmp_path: Path) -> Settings:
         data_dir=tmp_path,
         database_name="test.db",
         discord_client_id="test-client-id",
-        discord_client_secret="test-client-secret",  # type: ignore[arg-type]
+        discord_client_secret="test-client-secret",
         discord_redirect_uri="http://testserver/api/auth/callback",
-        omdb_api_key=OMDB_TEST_KEY,  # type: ignore[arg-type]
-        tmdb_bearer_token=TMDB_TEST_TOKEN,  # type: ignore[arg-type]
-        encryption_key=Fernet.generate_key().decode(),  # type: ignore[arg-type]
+        omdb_api_key=OMDB_TEST_KEY,
+        tmdb_bearer_token=TMDB_TEST_TOKEN,
+        encryption_key=Fernet.generate_key().decode(),
         cookie_secure=False,  # TestClient talks plain http
         frontend_url="http://localhost:5173/",
         b2_key_id=B2_TEST_KEY_ID,
-        b2_application_key=B2_TEST_APP_KEY,  # type: ignore[arg-type]
+        b2_application_key=B2_TEST_APP_KEY,
         b2_bucket_name=B2_TEST_BUCKET,
         daily_backup_enabled=False,  # no background thread in tests; run_once is tested directly
     )
