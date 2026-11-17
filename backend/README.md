@@ -84,6 +84,7 @@ All routes are under `/api`. Interactive docs: http://localhost:8000/docs
 | GET | `/api/tvlist/{imdb}/episodes` | ✔ | Return the cached episodes for a TV show |
 | PATCH | `/api/tvlist/{imdb}/progress` | ✔ | Update clamped episode progress and current episode metadata; also syncs status (see below) in the same commit |
 | PATCH | `/api/tvlist/{imdb}/status` | ✔ | `{"status": "watching"}` |
+| PATCH | `/api/tvlist/{imdb}/rating` | ✔ | `{"rating": 7}` (1–10) or `{"rating": null}` to clear; your own rating, returned as `rating` on each list entry |
 | DELETE | `/api/tvlist/{imdb}` | ✔ | Remove a show from the current user's list |
 | GET | `/api/movielist` | ✔ | Full movie list |
 | POST | `/api/movielist/add` | ✔ | `{"movie": {"imdb": "tt0133093", "title": "The Matrix", "image": "..."}, "status": "planned"}` |

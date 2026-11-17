@@ -38,10 +38,6 @@ from app.services import lists as list_service
 
 log = logging.getLogger("uvicorn.error.discover")
 
-# Session.get() on a union of model classes is typed as returning Base, hence the casts below.
-_CacheRow = DiscoverCacheTv | DiscoverCacheMovie
-_CatalogRow = TvShow | Movie
-
 _CACHE: dict[DiscoverKind, type[DiscoverCacheTv] | type[DiscoverCacheMovie]] = {
     "tv": DiscoverCacheTv,
     "movie": DiscoverCacheMovie,
@@ -54,7 +50,8 @@ def get_page(
 ) -> DiscoverPage:
     """Cache-first: a fresh cached page, else TMDB (saved for next time)."""
     model = _CACHE[kind]
-    row = cast(_CacheRow | None, db.get(model, page))
+    # db.get() on a union of model types is typed as Base; narrow it back.
+    row = cast(DiscoverCacheTv | DiscoverCacheMovie | None, db.get(model, page))
     now = utcnow()
     if row is None or now - row.fetched_at >= max_age:
         try:
@@ -161,7 +158,7 @@ def _save_page(
         db.commit()
     except IntegrityError:  # another request cached the same page first
         db.rollback()
-        existing = cast(_CacheRow | None, db.get(model, page))
+        existing = cast(DiscoverCacheTv | DiscoverCacheMovie | None, db.get(model, page))
         assert existing is not None
         return existing
     return row
@@ -199,7 +196,7 @@ def _with_imdb(db: Session, kind: DiscoverKind, items: list[DiscoverItem]) -> li
 
 def _link_tmdb_id(db: Session, kind: DiscoverKind, imdb: str, tmdb_id: int) -> None:
     """Remember the TMDB id on the catalog row (if the title is in the catalog yet)."""
-    row = cast(_CatalogRow | None, db.get(_CATALOG[kind], imdb))
+    row = cast(TvShow | Movie | None, db.get(_CATALOG[kind], imdb))
     if row is not None and row.tmdb_id != tmdb_id:
         row.tmdb_id = tmdb_id
         db.commit()

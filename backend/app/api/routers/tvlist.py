@@ -8,6 +8,7 @@ from app.schemas.tvlist import (
     TvListEntryOut,
     TvListOut,
     TvProgressRequest,
+    TvRatingRequest,
 )
 from app.services import lists as list_service
 
@@ -54,6 +55,15 @@ def update_status(
 ) -> TvListEntryOut:
     """Change the watch status of a show in the logged-in user's TV list."""
     entry = list_service.update_tv_status(db, user=user, imdb=imdb, status=body.status)
+    return TvListEntryOut.model_validate(entry)
+
+
+@router.patch("/{imdb}/rating", response_model=TvListEntryOut)
+def update_rating(
+    imdb: ImdbId, body: TvRatingRequest, user: CurrentUser, db: DbSession
+) -> TvListEntryOut:
+    """Set (1-10) or clear (null) the logged-in user's rating of a show on their TV list."""
+    entry = list_service.update_tv_rating(db, user=user, imdb=imdb, rating=body.rating)
     return TvListEntryOut.model_validate(entry)
 
 

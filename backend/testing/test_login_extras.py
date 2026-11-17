@@ -25,8 +25,7 @@ def _login(client: TestClient, *, next_path: str | None = None, headers: dict[st
         follow_redirects=False,
     )
     assert callback.status_code == 302, callback.text
-    location: str = callback.headers["location"]
-    return location
+    return str(callback.headers["location"])
 
 
 # --- return to the page after login ---------------------------------------------------

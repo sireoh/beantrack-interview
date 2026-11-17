@@ -16,6 +16,7 @@ from testing.fakes import FakeUpstream, movie_add_payload, tv_add_payload
 PROTECTED: list[tuple[str, str, dict[str, Any]]] = [
     ("GET", "/api/tvlist", {}),
     ("POST", "/api/tvlist/add", {"json": tv_add_payload()}),
+    ("PATCH", "/api/tvlist/tt0903747/rating", {"json": {"rating": 7}}),
     ("GET", "/api/movielist", {}),
     ("POST", "/api/movielist/add", {"json": movie_add_payload()}),
     ("GET", "/api/search", {"params": {"type": "tv", "q": "breaking"}}),

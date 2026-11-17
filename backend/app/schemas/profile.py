@@ -12,7 +12,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from app.models.enums import WatchStatus
 from app.schemas.common import ImdbId
 
-EXPORT_FORMAT: Final = "beantrack-export"
+EXPORT_FORMAT: Literal["beantrack-export"] = "beantrack-export"
 EXPORT_VERSION = 1
 MAX_IMPORT_ENTRIES = 5000
 
