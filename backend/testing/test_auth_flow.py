@@ -28,7 +28,7 @@ def _login(client: TestClient, code: str = "good-code") -> tuple[str, str]:
         follow_redirects=False,
     )
     assert callback.status_code == 302, callback.text
-    return callback.headers["location"], callback.cookies.get("beantrack_session", "")
+    return callback.headers["location"], callback.cookies.get("beantrack_session") or ""
 
 
 def test_login_redirects_to_discord(client: TestClient, settings: Settings) -> None:
