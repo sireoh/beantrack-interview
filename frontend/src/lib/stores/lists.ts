@@ -6,6 +6,7 @@ import { derived, get, writable } from 'svelte/store';
 import { api } from '$lib/api/client';
 import type { MovieList, MovieListEntry, TvList, TvListEntry } from '$lib/api/types';
 import type { StatusFilter } from '$lib/status';
+import { myCorrections } from './corrections';
 import { episodes } from './episodes';
 
 export const tvList = writable<TvList | null>(null);
@@ -109,11 +110,17 @@ export function invalidateLists(): void {
 	movieList.set(null);
 }
 
+/** Drop only the TV list: shared titles changed (approval) or custom display was toggled. */
+export function invalidateTvList(): void {
+	tvList.set(null);
+}
+
 /** Forget everything user-specific (logout / expired session). */
 export function resetLists(): void {
 	tvList.set(null);
 	movieList.set(null);
 	episodes.set({});
+	myCorrections.set(null);
 	tvFilter.set({ query: '', status: 'all' });
 	movieFilter.set({ query: '', status: 'all' });
 }

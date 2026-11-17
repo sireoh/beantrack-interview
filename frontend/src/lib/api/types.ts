@@ -19,6 +19,8 @@ export interface User {
 	role: UserRole;
 	/** Saved light/dark preference; null until the user picks one. */
 	theme: ThemeName | null;
+	/** Whether this user's personal title/image overrides are shown in their TV list. */
+	custom_display_enabled: boolean;
 }
 
 // --- Search (GET /api/search) ---------------------------------------------------
@@ -77,12 +79,18 @@ export interface DiscoverAddRequest {
 
 // --- TV list ---------------------------------------------------------------------
 
+/**
+ * `title` / `image` are what this user should see: their personal override (when custom display
+ * is on), otherwise the shared catalogue values, which are always given as `catalog_*`.
+ */
 export interface TvShow {
 	imdb: string;
 	title: string;
 	image: string | null;
 	score: number | null;
 	episodes_count: number;
+	catalog_title: string;
+	catalog_image: string | null;
 }
 
 export interface Episode {
@@ -100,6 +108,10 @@ export interface TvListEntry {
 	current_episode: number;
 	/** Cached copy of that episode; null until progress is first changed. */
 	current_episode_metadata: Episode | null;
+	/** The user's stored override (returned even while custom display is off), or null. */
+	override: TvOverride | null;
+	/** True when `override` is currently applied to `show.title` / `show.image`. */
+	override_active: boolean;
 	added_at: string;
 	updated_at: string;
 }
@@ -119,6 +131,54 @@ export interface TvAddRequest {
 export type TvProgressRequest =
 	| { delta: number; current_episode_metadata: Episode }
 	| { set_to: number; current_episode_metadata: Episode };
+
+// --- Corrections (catalogue fixes) and personal overrides -------------------------
+
+export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
+
+/** A correction as its submitter sees it (GET /api/corrections/mine, POST /api/corrections). */
+export interface ShowCorrection {
+	id: number;
+	imdb_id: string;
+	status: CorrectionStatus;
+	/** The shared show as it is now. */
+	current_title: string;
+	current_image: string | null;
+	new_title: string | null;
+	new_image: string | null;
+	created_at: string;
+	reviewed_at: string | null;
+}
+
+/** A correction in the admin review queue, with who submitted it. */
+export interface AdminCorrection extends ShowCorrection {
+	discord_id: string;
+	username: string;
+	avatar_url: string | null;
+	reviewed_by: string | null;
+}
+
+/** At least one of the two. A resubmit while pending replaces both (a missing field becomes null). */
+export interface CorrectionRequest {
+	imdb_id: string;
+	new_title?: string;
+	new_image?: string;
+}
+
+export interface TvOverride {
+	custom_title: string | null;
+	custom_image: string | null;
+}
+
+/** PUT /api/tvlist/{imdb}/override: at least one of the two (use DELETE to remove it). */
+export interface TvOverrideRequest {
+	custom_title?: string;
+	custom_image?: string;
+}
+
+export interface CustomDisplay {
+	enabled: boolean;
+}
 
 // --- Movie list ------------------------------------------------------------------
 

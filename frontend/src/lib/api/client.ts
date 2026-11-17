@@ -4,7 +4,11 @@
 import { API_URL } from '$lib/config';
 import type { WatchStatus } from '$lib/status';
 import type {
+	AdminCorrection,
 	Backup,
+	CorrectionRequest,
+	CorrectionStatus,
+	CustomDisplay,
 	DiscoverAddRequest,
 	DiscoverPage,
 	Episode,
@@ -14,12 +18,14 @@ import type {
 	ProfileExport,
 	ProfileImportResult,
 	RestoreResult,
+	ShowCorrection,
 	SearchMovieCard,
 	SearchResponse,
 	SearchTVCard,
 	TvAddRequest,
 	TvList,
 	TvListEntry,
+	TvOverrideRequest,
 	TvProgressRequest,
 	ThemeName,
 	User
@@ -108,6 +114,20 @@ export const api = {
 	updateTvStatus: (imdb: string, status: WatchStatus) =>
 		request<TvListEntry>('PATCH', `/api/tvlist/${enc(imdb)}/status`, { status }),
 	deleteTv: (imdb: string) => request<void>('DELETE', `/api/tvlist/${enc(imdb)}`),
+	setTvOverride: (imdb: string, body: TvOverrideRequest) =>
+		request<TvListEntry>('PUT', `/api/tvlist/${enc(imdb)}/override`, body),
+	deleteTvOverride: (imdb: string) =>
+		request<void>('DELETE', `/api/tvlist/${enc(imdb)}/override`),
+
+	// Catalogue corrections (admin review)
+	submitCorrection: (body: CorrectionRequest) =>
+		request<ShowCorrection>('POST', '/api/corrections', body),
+	myCorrections: () => request<ShowCorrection[]>('GET', '/api/corrections/mine'),
+
+	// Settings
+	getCustomDisplay: () => request<CustomDisplay>('GET', '/api/settings/custom-display'),
+	setCustomDisplay: (enabled: boolean) =>
+		request<CustomDisplay>('PUT', '/api/settings/custom-display', { enabled }),
 
 	// Movie list
 	getMovieList: () => request<MovieList>('GET', '/api/movielist'),
@@ -126,5 +146,14 @@ export const api = {
 	listBackups: () => request<Backup[]>('GET', '/api/admin/backups'),
 	restoreBackup: (name: string) => request<RestoreResult>('POST', '/api/admin/restore', { name }),
 	deleteBackup: (id: string) => request<void>('DELETE', `/api/admin/backups/${enc(id)}`),
-	clearDiscoverCache: () => request<void>('DELETE', '/api/admin/discover-cache')
+	clearDiscoverCache: () => request<void>('DELETE', '/api/admin/discover-cache'),
+	listCorrections: (status?: CorrectionStatus) =>
+		request<AdminCorrection[]>(
+			'GET',
+			status ? `/api/admin/corrections?status=${enc(status)}` : '/api/admin/corrections'
+		),
+	approveCorrection: (id: number) =>
+		request<AdminCorrection>('PATCH', `/api/admin/corrections/${id}/approve`),
+	rejectCorrection: (id: number) =>
+		request<AdminCorrection>('PATCH', `/api/admin/corrections/${id}/reject`)
 };

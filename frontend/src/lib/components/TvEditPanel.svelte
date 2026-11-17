@@ -1,5 +1,6 @@
 <!--
-  Everything you can edit on a TV list entry: +/- episode, jump to an episode, status.
+  Everything you can edit on a TV list entry: +/- episode, jump to an episode, status,
+  title & image (personal override or catalogue correction).
   Shared by EpisodeEditDropdown (desktop) and EditMobileModal (mobile/tablet); the
   logic itself lives in $lib/list-edit.
 -->
@@ -20,6 +21,7 @@
 	import { showError } from '$lib/stores/toasts';
 	import DeleteEntryButton from './DeleteEntryButton.svelte';
 	import StatusPicker from './StatusPicker.svelte';
+	import TvTitleEditor from './TvTitleEditor.svelte';
 
 	let { entry, ondelete }: { entry: TvListEntry; ondelete: () => void } = $props();
 
@@ -131,6 +133,8 @@
 			onchange={(status) => run(() => setTvStatus(entry, status))}
 		/>
 	</div>
+
+	<TvTitleEditor {entry} />
 
 	<DeleteEntryButton {ondelete} />
 </div>

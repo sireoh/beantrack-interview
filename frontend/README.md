@@ -63,10 +63,13 @@ src/
 │   ├── config.ts             # PUBLIC_* env, login URL, IMDb links
 │   ├── list-edit.ts          # shared edit logic: episodes, +/- (delta), jump (set_to), status, episode search
 │   ├── list-view.ts          # filter / sort helpers for the list tables
-│   ├── stores/               # user, searchMode, searchResults, tvList, movieList, episodes, theme, toasts
+│   ├── stores/               # user, searchMode, searchResults, tvList, movieList, episodes,
+│   │                         # myCorrections, theme, toasts
 │   └── components/           # Navbar, SearchBar, SearchFilter, SearchTVCard/SearchMovieCard,
 │                             # TVListTable, MovieListTable, EpisodeEditDropdown, EditMobileModal,
-│                             # StatusPicker, ThemeController, LandingPage (+ small shared pieces)
+│                             # StatusPicker, ThemeController, LandingPage, TvTitleEditor,
+│                             # CustomDisplaySettings, MyCorrections, AdminCorrections
+│                             # (+ small shared pieces)
 └── routes/                   # /, /login, /search, /tvlist, /movielist
 ```
 
@@ -94,3 +97,20 @@ src/
 - `/settings`: export/import via `/api/auth/profile/export` and `/import`; the admin section
   (only rendered when `user.role === 'admin'`, and enforced by the backend) uses
   `/api/admin/backup`, `/api/admin/backups` and `/api/admin/restore`.
+- **Titles and images** (`TvTitleEditor`, inside every TV row's edit menu/modal) are two separate
+  things:
+  - *Rename for me*: a personal override, `PUT /api/tvlist/{imdb}/override` (returns the entry) and
+    `DELETE` to reset (204; the row falls back to `show.catalog_title` / `show.catalog_image`). It
+    applies at once, only for that user. `entry.override` holds it and `entry.override_active` says
+    whether it is applied to `show.title` / `show.image`.
+  - *Suggest a fix*: a catalogue correction, `POST /api/corrections`. It never changes the list on
+    screen (for the submitter too) until an admin approves it. Only one correction per show can be
+    pending; submitting again replaces it, both fields included, so the form starts from the
+    pending one. The `myCorrections` store (`GET /api/corrections/mine`) tells the form whether one
+    is pending.
+- `/settings` also has: *Custom titles & images* (`PUT /api/settings/custom-display`; the current
+  value comes with `/api/auth/me` as `custom_display_enabled`; changing it drops the cached TV list),
+  *My submissions* (`GET /api/corrections/mine`) and, for admins, *Admin · Catalogue corrections*
+  (`GET /api/admin/corrections?status=pending`, `PATCH /api/admin/corrections/{id}/approve` and
+  `/reject`; 409 means it was already reviewed, so the queue is reloaded).
+- User-supplied titles and image URLs are only rendered as text and `src`, never `{@html}`.

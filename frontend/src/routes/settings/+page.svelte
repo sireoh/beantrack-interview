@@ -1,7 +1,10 @@
 <script lang="ts">
 	import AdminBackups from '$lib/components/AdminBackups.svelte';
+	import AdminCorrections from '$lib/components/AdminCorrections.svelte';
 	import AdminDiscoverCache from '$lib/components/AdminDiscoverCache.svelte';
+	import CustomDisplaySettings from '$lib/components/CustomDisplaySettings.svelte';
 	import LandingPage from '$lib/components/LandingPage.svelte';
+	import MyCorrections from '$lib/components/MyCorrections.svelte';
 	import WatchlistTransfer from '$lib/components/WatchlistTransfer.svelte';
 	import { user, userLoaded } from '$lib/stores/user';
 </script>
@@ -15,8 +18,11 @@
 {:else}
 	<h1 class="mb-4 text-2xl font-bold">Settings</h1>
 	<div class="flex max-w-3xl flex-col gap-6">
+		<CustomDisplaySettings />
+		<MyCorrections />
 		<WatchlistTransfer />
 		{#if $user.role === 'admin'}
+			<AdminCorrections />
 			<AdminBackups />
 			<AdminDiscoverCache />
 		{/if}

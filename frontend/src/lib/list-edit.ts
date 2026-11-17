@@ -1,11 +1,13 @@
 /**
  * Edit actions shared by the desktop edit dropdown and the mobile edit modal:
- * episode loading, +/- progress, jump to an episode, status changes and episode search.
+ * episode loading, +/- progress, jump to an episode, status changes, episode search, and the
+ * title/image override and correction.
  * Every action updates the list stores with the server's response.
  */
 import { api } from '$lib/api/client';
-import type { Episode, MovieListEntry, TvListEntry } from '$lib/api/types';
+import type { Episode, MovieListEntry, ShowCorrection, TvListEntry } from '$lib/api/types';
 import type { WatchStatus } from '$lib/status';
+import { upsertMyCorrection } from '$lib/stores/corrections';
 import { ensureEpisodes } from '$lib/stores/episodes';
 import {
 	removeMovieEntry,
@@ -107,4 +109,75 @@ export function filterEpisodes(episodes: Episode[], query: string): IndexedEpiso
 		);
 	}
 	return all.filter(({ episode }) => episode.title.toLowerCase().includes(q));
+}
+
+// --- Title & image: personal overrides and catalogue corrections -----------------
+
+export const TITLE_MAX_LENGTH = 255; // backend app/models/corrections.py
+export const IMAGE_MAX_LENGTH = 512;
+
+/** Trimmed title/image from the edit form; empty fields are left out. */
+export interface TitleImageFields {
+	title?: string;
+	image?: string;
+}
+
+/**
+ * Validate the title/image form the way the backend does (at least one field, not blank,
+ * image a plain http(s) URL). Returns the fields to send, or an error message.
+ */
+export function readTitleImage(
+	title: string,
+	image: string
+): { fields: TitleImageFields } | { error: string } {
+	const t = title.trim();
+	const i = image.trim();
+	if (!t && !i) return { error: 'Enter a title, an image URL, or both.' };
+	if (t.length > TITLE_MAX_LENGTH) return { error: `Titles are at most ${TITLE_MAX_LENGTH} characters.` };
+	if (i && !/^https?:\/\/\S+$/.test(i)) return { error: 'The image must be an http(s) URL.' };
+	if (i.length > IMAGE_MAX_LENGTH) return { error: `Image URLs are at most ${IMAGE_MAX_LENGTH} characters.` };
+	const fields: TitleImageFields = {};
+	if (t) fields.title = t;
+	if (i) fields.image = i;
+	return { fields };
+}
+
+/** Set this user's own title/image for a show. Applies at once, only for them. */
+export async function setTvOverride(entry: TvListEntry, fields: TitleImageFields): Promise<void> {
+	const updated = await api.setTvOverride(entry.show.imdb, {
+		custom_title: fields.title,
+		custom_image: fields.image
+	});
+	replaceTvEntry(updated);
+}
+
+/**
+ * Remove the user's override. DELETE returns 204, so the row falls back to the shared values,
+ * which every entry carries as `show.catalog_*`.
+ */
+export async function removeTvOverride(entry: TvListEntry): Promise<void> {
+	await api.deleteTvOverride(entry.show.imdb);
+	replaceTvEntry({
+		...entry,
+		show: { ...entry.show, title: entry.show.catalog_title, image: entry.show.catalog_image },
+		override: null,
+		override_active: false
+	});
+}
+
+/**
+ * Propose a title/image fix for everyone. Nothing on screen changes until an admin approves
+ * it, so only the "my corrections" store is updated, never the list entry.
+ */
+export async function submitCorrection(
+	entry: TvListEntry,
+	fields: TitleImageFields
+): Promise<ShowCorrection> {
+	const correction = await api.submitCorrection({
+		imdb_id: entry.show.imdb,
+		new_title: fields.title,
+		new_image: fields.image
+	});
+	upsertMyCorrection(correction);
+	return correction;
 }
