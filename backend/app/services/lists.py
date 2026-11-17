@@ -12,6 +12,7 @@ from app.clients.tvmaze import TvMazeClient, TvMazeEpisode
 from app.core.errors import ConflictError, InvalidRequestError, NotFoundError
 from app.db.types import utcnow
 from app.models import Episode, MovieList, TvList, User, UserMovie, UserTvShow, WatchStatus
+from app.repositories import corrections as corrections_repo
 from app.repositories import media as media_repo
 from app.repositories import movielists as movielists_repo
 from app.repositories import tvlists as tvlists_repo
@@ -119,8 +120,7 @@ def update_tv_progress(
     if request.set_to is not None:
         requested = request.set_to
     else:
-        # The request validator guarantees delta is set whenever set_to is not.
-        assert request.delta is not None
+        assert request.delta is not None  # the schema requires exactly one of the two
         requested = entry.current_episode + request.delta
     current_episode = min(max(requested, 0), max_index)
     metadata: dict[str, Any] = request.current_episode_metadata.model_dump()
@@ -170,6 +170,10 @@ def delete_tvshow(db: Session, *, user: User, imdb: str) -> None:
     if entry is None:
         raise NotFoundError(TV_NOT_FOUND)
     tvlists_repo.delete_entry(db, entry)
+    # A personal override only makes sense for a show on the list; re-adding starts clean.
+    override = corrections_repo.get_override(db, discord_id=user.discord_id, imdb_id=imdb)
+    if override is not None:
+        corrections_repo.delete_override(db, override)
     db.commit()
 
 

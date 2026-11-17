@@ -11,7 +11,16 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import admin, auth, discover, movielist, search, tvlist
+from app.api.routers import (
+    admin,
+    auth,
+    corrections,
+    discover,
+    movielist,
+    search,
+    settings as settings_routes,
+    tvlist,
+)
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 from app.db.session import build_engine, build_sessionmaker
@@ -55,7 +64,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type"],
     )
 
@@ -70,6 +79,9 @@ def create_app(
     api.include_router(movielist.router)
     api.include_router(search.router)
     api.include_router(discover.router)
+    api.include_router(corrections.router)
+    api.include_router(settings_routes.router)
     api.include_router(admin.router)
+    api.include_router(corrections.admin_router)
     app.include_router(api, prefix="/api")
     return app

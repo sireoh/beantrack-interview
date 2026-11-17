@@ -58,3 +58,22 @@ def theme_column_type() -> Enum:
         values_callable=lambda enum_cls: [member.value for member in enum_cls],
         validate_strings=True,
     )
+
+
+class CorrectionStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+def correction_status_column_type() -> Enum:
+    """VARCHAR + CHECK constraint, like watch_status."""
+    return Enum(
+        CorrectionStatus,
+        name="correction_status",
+        native_enum=False,
+        create_constraint=True,
+        length=16,
+        values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        validate_strings=True,
+    )

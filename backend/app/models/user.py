@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import Boolean, ForeignKey, String, Text, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -27,6 +27,10 @@ class User(Base):
     )
     # Light/dark preference; null until the user picks one (the browser decides until then).
     theme: Mapped[Theme | None] = mapped_column(theme_column_type(), nullable=True)
+    # Show personal title/image overrides in the user's own list (off = shared catalogue values).
+    custom_display_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=true()
+    )
 
     # Discord OAuth tokens, Fernet-encrypted with ENCRYPTION_KEY. Never stored in plaintext.
     discord_access_token: Mapped[str | None] = mapped_column(Text)

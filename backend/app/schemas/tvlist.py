@@ -8,7 +8,17 @@ from app.schemas.common import ImdbId, MediaOut, ORMModel, RequestModel
 
 
 class TvShowOut(MediaOut):
+    """`title`/`image` are what this user should see: their personal override when custom
+    display is on, otherwise the shared catalogue values (also given as catalog_*)."""
+
     episodes_count: int
+    catalog_title: str
+    catalog_image: str | None
+
+
+class TvOverrideOut(ORMModel):
+    custom_title: str | None
+    custom_image: str | None
 
 
 class EpisodeOut(ORMModel):
@@ -29,6 +39,10 @@ class EpisodeMetadata(RequestModel):
 
 class TvListEntryOut(ORMModel):
     show: TvShowOut
+    # The user's stored override (returned even while custom display is off), or null.
+    override: TvOverrideOut | None
+    # True when `override` is currently applied to show.title / show.image.
+    override_active: bool
     status: WatchStatus
     current_episode: int
     current_episode_metadata: EpisodeMetadata | None

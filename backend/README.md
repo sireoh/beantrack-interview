@@ -25,7 +25,7 @@ backend/
 │   ├── services/             # use cases (login, add show…); own the transaction
 │   └── api/
 │       ├── deps.py           # Depends() providers + Annotated aliases (CurrentUser, DbSession…)
-│       └── routers/          # auth, tvlist, movielist, search
+│       └── routers/          # auth, tvlist, movielist, search, discover, corrections, settings, admin
 ├── migrations/               # Alembic (env.py reads the DB path from Settings)
 ├── testing/                  # pytest suite + fake upstream APIs
 ├── alembic.ini
@@ -56,6 +56,8 @@ each user only stores their own progress (`user_tvshows`, `user_movies`).
 users ─1:1─ tvlists ─1:n─ user_tvshows ─n:1─ tvshows ─1:n─ episodes
       ─1:1─ movielists ─1:n─ user_movies ─n:1─ movies
       ─1:n─ sessions
+      ─1:n─ show_corrections ─n:1─ tvshows   (proposed catalogue fixes, admin-reviewed)
+      ─1:n─ tv_overrides ─n:1─ tvshows       (personal title/image, only for that user)
 ```
 
 Additions beyond the base spec, and why:
@@ -65,6 +67,9 @@ Additions beyond the base spec, and why:
 | `users.discord_access_token`, `discord_refresh_token`, `discord_token_expires_at` | Where the Fernet-encrypted Discord tokens live |
 | `tvshows.tvmaze_id` | Lets episodes be re-fetched without another IMDb lookup |
 | `episodes.number` nullable | TVmaze specials have no episode number |
+| `users.custom_display_enabled` | Whether the user's personal overrides are shown (default on) |
+| `show_corrections` | Proposed title/image fixes for a shared show, with review status |
+| `tv_overrides` | A user's own title/image for a show; primary key `(discord_id, imdb_id)` |
 
 `sessions.session_id` is the SHA-256 of the cookie token; the raw token is never stored.
 
@@ -103,6 +108,15 @@ All routes are under `/api`. Interactive docs: http://localhost:8000/docs
 | DELETE | `/api/admin/backups/{id}` | admin | Delete one manual backup; files outside `manual-backups/` are never touched |
 | POST | `/api/admin/restore` | admin | `{"name": "manual-backups/…"}`; uploads a safety backup, then restores |
 | DELETE | `/api/admin/discover-cache` | admin | Empty both Discover cache tables |
+| POST | `/api/corrections` | ✔ | `{"imdb_id": "tt0903747", "new_title": "...", "new_image": "https://..."}` (at least one of the two); 201 new, **200 if it replaced your pending one** (see below) |
+| GET | `/api/corrections/mine` | ✔ | Your corrections in every status, newest first |
+| GET | `/api/admin/corrections?status=pending` | admin | Review queue, oldest first; `status` is optional (`pending\|approved\|rejected`). Items include `discord_id`, `username`, `avatar_url`, `current_title`/`current_image`, `new_title`/`new_image`, `created_at` |
+| PATCH | `/api/admin/corrections/{id}/approve` | admin | Copies the correction's set fields onto the shared show; 409 if not pending |
+| PATCH | `/api/admin/corrections/{id}/reject` | admin | Show unchanged; 409 if not pending |
+| PUT | `/api/tvlist/{imdb_id}/override` | ✔ | `{"custom_title": "...", "custom_image": "https://..."}` (at least one); replaces your override and returns the list entry |
+| DELETE | `/api/tvlist/{imdb_id}/override` | ✔ | Remove your override (204, also when there was none) |
+| GET | `/api/settings/custom-display` | ✔ | `{"enabled": true}` |
+| PUT | `/api/settings/custom-display` | ✔ | `{"enabled": false}` hides your overrides (they are kept) |
 | GET | `/api/health` | – | Liveness |
 
 `status` is one of `watching | completed | planned | dropped` (default `planned`).
@@ -119,6 +133,36 @@ episode list. Progress updates accept exactly one of `set_to` or `delta`, plus t
 Movie ratings are fetched from OMDb only when `/api/movielist/add` first inserts
 the shared movie catalog row. OMDb's `imdbRating` is stored and returned as `score`;
 later users reuse the cached value without another detail request.
+
+### Catalogue corrections and personal overrides
+
+Two separate mechanisms (`services/corrections.py`):
+
+- **Corrections** propose a new title and/or image (a plain `http(s)` URL; no upload yet) for a
+  shared show. A pending correction changes nothing for anyone, its submitter included. An admin
+  approves it (the fields it sets are copied onto `tvshows`, so everyone sees them) or rejects it
+  (the show is unchanged). Only a pending correction can be reviewed; anything else is 409. The
+  review is one conditional `UPDATE ... WHERE status = 'pending'`, so two admins can't both
+  review the same correction.
+- **Overrides** are a user's own title/image for a show on their list. They apply at once, only
+  for that user, while `custom_display_enabled` is on. Removing the show from your list also
+  removes its override.
+
+**Second correction rule:** a user can have only one *pending* correction per show. Submitting
+again while one is pending updates that correction in place: same `id`, `new_title` and
+`new_image` both replaced by the new submission (a field you leave out becomes null),
+`created_at` set to now, and the API answers **200** instead of 201. Once it has been approved or
+rejected, the next submit creates a new correction (201). The database enforces the rule with a
+partial unique index on `(submitted_by, imdb_id) WHERE status = 'pending'`.
+
+**What a user sees** in `/api/tvlist` (and every TV list entry response): start from the shared
+show's `title`/`image`. If custom display is on and the user has an override for that show, each
+non-null override field replaces the shared value. Entries also carry `show.catalog_title` and
+`show.catalog_image` (the shared values), `override` (the stored override, returned even while
+custom display is off) and `override_active`.
+
+IMDb ids on these routes must match `^tt\d{7,8}$` (422 otherwise); a well-formed id that isn't in
+the catalogue is 404. Titles are stored exactly as typed (1–255 characters, not blank).
 
 ### Discover (TMDB)
 

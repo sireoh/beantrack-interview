@@ -14,13 +14,18 @@ class UserOut(ORMModel):
     last_login: datetime
     role: UserRole
     theme: Theme | None
+    custom_display_enabled: bool
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def avatar_url(self) -> str | None:
-        if self.avatar is None:
-            return None
-        return f"https://cdn.discordapp.com/avatars/{self.discord_id}/{self.avatar}.png"
+        return discord_avatar_url(self.discord_id, self.avatar)
+
+
+def discord_avatar_url(discord_id: str, avatar: str | None) -> str | None:
+    if avatar is None:
+        return None
+    return f"https://cdn.discordapp.com/avatars/{discord_id}/{avatar}.png"
 
 
 class ThemeUpdateRequest(RequestModel):
