@@ -38,8 +38,15 @@ from app.services import lists as list_service
 
 log = logging.getLogger("uvicorn.error.discover")
 
-_CACHE = {"tv": DiscoverCacheTv, "movie": DiscoverCacheMovie}
-_CATALOG = {"tv": TvShow, "movie": Movie}
+# Session.get() on a union of model classes is typed as returning Base, hence the casts below.
+_CacheRow = DiscoverCacheTv | DiscoverCacheMovie
+_CatalogRow = TvShow | Movie
+
+_CACHE: dict[DiscoverKind, type[DiscoverCacheTv] | type[DiscoverCacheMovie]] = {
+    "tv": DiscoverCacheTv,
+    "movie": DiscoverCacheMovie,
+}
+_CATALOG: dict[DiscoverKind, type[TvShow] | type[Movie]] = {"tv": TvShow, "movie": Movie}
 
 
 def get_page(
@@ -47,7 +54,7 @@ def get_page(
 ) -> DiscoverPage:
     """Cache-first: a fresh cached page, else TMDB (saved for next time)."""
     model = _CACHE[kind]
-    row = db.get(model, page)
+    row = cast(_CacheRow | None, db.get(model, page))
     now = utcnow()
     if row is None or now - row.fetched_at >= max_age:
         try:
@@ -148,13 +155,13 @@ def _save_page(
     results: list[dict[str, object]],
     total_pages: int,
     now: datetime,
-) -> DiscoverCacheTv | DiscoverCacheMovie:
+) -> _CacheRow:
     row = db.merge(model(page=page, results=results, total_pages=total_pages, fetched_at=now))
     try:
         db.commit()
     except IntegrityError:  # another request cached the same page first
         db.rollback()
-        existing = db.get(model, page)
+        existing = cast(_CacheRow | None, db.get(model, page))
         assert existing is not None
         return existing
     return row
@@ -192,7 +199,7 @@ def _with_imdb(db: Session, kind: DiscoverKind, items: list[DiscoverItem]) -> li
 
 def _link_tmdb_id(db: Session, kind: DiscoverKind, imdb: str, tmdb_id: int) -> None:
     """Remember the TMDB id on the catalog row (if the title is in the catalog yet)."""
-    row = db.get(_CATALOG[kind], imdb)
+    row = cast(_CatalogRow | None, db.get(_CATALOG[kind], imdb))
     if row is not None and row.tmdb_id != tmdb_id:
         row.tmdb_id = tmdb_id
         db.commit()

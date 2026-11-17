@@ -116,7 +116,7 @@ def update_tv_progress(
 
     episode_count = len(entry.show.episodes)
     max_index = max(episode_count - 1, 0)
-    requested = request.set_to if request.set_to is not None else entry.current_episode + request.delta
+    requested = request.set_to if request.set_to is not None else entry.current_episode + (request.delta or 0)
     current_episode = min(max(requested, 0), max_index)
     metadata: dict[str, Any] = request.current_episode_metadata.model_dump()
     entry.current_episode = current_episode

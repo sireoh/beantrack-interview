@@ -14,6 +14,7 @@ dependencies = [
     "cryptography>=44",
     # IANA time zone data for DAILY_BACKUP_TIMEZONE (slim images and Windows lack it)
     "tzdata>=2024.1",
+    "httpx2>=2.16.2",
 ]
 
 [dependency-groups]

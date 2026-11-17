@@ -104,6 +104,7 @@ class TvMazeClient:
             f"{self._base_url}/shows/{tvmaze_id}",
             params={"embed": "episodes"},
         )
+        assert payload is not None  # get_json only returns None with allow_404
         try:
             episodes_payload = (payload.get("_embedded") or {}).get("episodes", [])
             episodes = [_Episode.model_validate(item) for item in episodes_payload]

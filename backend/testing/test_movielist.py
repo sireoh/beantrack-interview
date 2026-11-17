@@ -89,7 +89,9 @@ def test_movie_data_is_fetched_once_and_shared(
     assert request.url.params["i"] == "tt0133093"
     assert request.url.params["apikey"] == "omdb-test-key"
     assert db.scalar(select(func.count()).select_from(Movie)) == 1
-    assert db.get(Movie, "tt0133093").score == 8.7
+    movie = db.get(Movie, "tt0133093")
+    assert movie is not None
+    assert movie.score == 8.7
 
 
 def test_update_movie_status(alice: TestClient, bob: TestClient) -> None:

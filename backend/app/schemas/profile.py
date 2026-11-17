@@ -5,14 +5,14 @@ episode metadata stays in the shared server cache and is re-fetched on import if
 """
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from app.models.enums import WatchStatus
 from app.schemas.common import ImdbId
 
-EXPORT_FORMAT = "beantrack-export"
+EXPORT_FORMAT: Final = "beantrack-export"
 EXPORT_VERSION = 1
 MAX_IMPORT_ENTRIES = 5000
 
