@@ -243,6 +243,7 @@ def entry_out(entry: UserTvShow, *, user: User, override: TvOverride | None) -> 
         current_episode_metadata=(
             EpisodeMetadata.model_validate(metadata) if metadata is not None else None
         ),
+        rating=entry.rating,
         added_at=entry.added_at,
         updated_at=entry.updated_at,
     )

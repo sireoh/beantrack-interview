@@ -66,7 +66,7 @@ def update_rating(
 ) -> TvListEntryOut:
     """Set (1-10) or clear (null) the logged-in user's rating of a show on their TV list."""
     entry = list_service.update_tv_rating(db, user=user, imdb=imdb, rating=body.rating)
-    return TvListEntryOut.model_validate(entry)
+    return corrections_service.tv_entry_out(db, user, entry)
 
 
 @router.delete("/{imdb}", status_code=status.HTTP_204_NO_CONTENT)

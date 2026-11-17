@@ -443,6 +443,22 @@ def test_invalid_override_body_is_422(
     assert alice.put(f"/api/tvlist/{BB}/override", json=body).status_code == 422
 
 
+def test_rating_and_override_work_together(alice: TestClient, catalog: None) -> None:
+    """Every TV entry response carries both the user's rating and their override."""
+    alice.put(f"/api/tvlist/{BB}/override", json={"custom_title": "Mine"})
+
+    rated = alice.patch(f"/api/tvlist/{BB}/rating", json={"rating": 9})
+
+    assert rated.status_code == 200, rated.text
+    assert rated.json()["rating"] == 9
+    assert rated.json()["show"]["title"] == "Mine"
+    assert rated.json()["override_active"] is True
+    overridden = alice.put(f"/api/tvlist/{BB}/override", json={"custom_title": "Again"}).json()
+    assert overridden["rating"] == 9
+    entry = next(e for e in alice.get("/api/tvlist").json()["entries"] if e["show"]["imdb"] == BB)
+    assert (entry["rating"], entry["show"]["title"]) == (9, "Again")
+
+
 # --- injection ------------------------------------------------------------------------
 
 INJECTION = "'); DROP TABLE shows;--"

@@ -35,10 +35,10 @@ def test_migrations_create_schema_matching_models(tmp_path: Path) -> None:
 
 
 def test_corrections_migration_upgrades_an_existing_database(tmp_path: Path) -> None:
-    """0008 on a database that already has users and shows (not just an empty one)."""
+    """0009 on a database that already has users and shows (not just an empty one)."""
     url = f"sqlite:///{(tmp_path / 'existing.db').as_posix()}"
     config = _alembic_config(url)
-    command.upgrade(config, "0007")
+    command.upgrade(config, "0008")
     engine = build_engine(url)
     with engine.begin() as connection:
         connection.execute(
@@ -87,7 +87,7 @@ def test_corrections_downgrade_keeps_existing_user_data(tmp_path: Path) -> None:
         connection.execute(text("INSERT INTO tvlists (tvlist_id, discord_id) VALUES ('L1', '1')"))
     engine.dispose()
 
-    command.downgrade(config, "0007")
+    command.downgrade(config, "0008")
 
     engine = build_engine(url)
     with engine.connect() as connection:
