@@ -5,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 from app.models.enums import WatchStatus
 
 ImdbId = Annotated[str, StringConstraints(pattern=r"^tt\d{5,10}$")]
+# Stricter form required by the catalogue-correction and override routes (BT-1).
+StrictImdbId = Annotated[str, StringConstraints(pattern=r"^tt\d{7,8}$")]
 
 
 class ORMModel(BaseModel):

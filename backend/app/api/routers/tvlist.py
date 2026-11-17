@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Response, status
 
 from app.api.deps import CurrentUser, DbSession, TvMaze
-from app.schemas.common import ImdbId, StatusUpdateRequest
+from app.schemas.common import ImdbId, StatusUpdateRequest, StrictImdbId
+from app.schemas.corrections import OverrideRequest
 from app.schemas.tvlist import (
     EpisodeOut,
     TvListAddRequest,
@@ -9,6 +10,7 @@ from app.schemas.tvlist import (
     TvListOut,
     TvProgressRequest,
 )
+from app.services import corrections as corrections_service
 from app.services import lists as list_service
 
 router = APIRouter(prefix="/tvlist", tags=["tvlist"])
@@ -17,7 +19,7 @@ router = APIRouter(prefix="/tvlist", tags=["tvlist"])
 @router.get("", response_model=TvListOut)
 def get_tvlist(user: CurrentUser, db: DbSession) -> TvListOut:
     """The logged-in user's full TV list."""
-    return TvListOut.model_validate(list_service.get_tvlist(db, user))
+    return corrections_service.tvlist_out(db, user, list_service.get_tvlist(db, user))
 
 
 @router.post("/add", response_model=TvListEntryOut, status_code=status.HTTP_201_CREATED)
@@ -26,7 +28,7 @@ def add_to_tvlist(
 ) -> TvListEntryOut:
     """Add a show from the supplied catalog data to the logged-in user's TV list."""
     entry = list_service.add_tvshow(db, tvmaze=tvmaze, user=user, request=body)
-    return TvListEntryOut.model_validate(entry)
+    return corrections_service.tv_entry_out(db, user, entry)
 
 
 @router.get("/{imdb}/episodes", response_model=list[EpisodeOut])
@@ -45,7 +47,7 @@ def update_progress(
 ) -> TvListEntryOut:
     """Update a user's clamped episode progress and cached metadata."""
     entry = list_service.update_tv_progress(db, user=user, imdb=imdb, request=body)
-    return TvListEntryOut.model_validate(entry)
+    return corrections_service.tv_entry_out(db, user, entry)
 
 
 @router.patch("/{imdb}/status", response_model=TvListEntryOut)
@@ -54,11 +56,26 @@ def update_status(
 ) -> TvListEntryOut:
     """Change the watch status of a show in the logged-in user's TV list."""
     entry = list_service.update_tv_status(db, user=user, imdb=imdb, status=body.status)
-    return TvListEntryOut.model_validate(entry)
+    return corrections_service.tv_entry_out(db, user, entry)
 
 
 @router.delete("/{imdb}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_from_tvlist(imdb: ImdbId, user: CurrentUser, db: DbSession) -> Response:
     """Remove a show from the logged-in user's TV list."""
     list_service.delete_tvshow(db, user=user, imdb=imdb)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/{imdb_id}/override", response_model=TvListEntryOut)
+def set_override(
+    imdb_id: StrictImdbId, body: OverrideRequest, user: CurrentUser, db: DbSession
+) -> TvListEntryOut:
+    """Set your own title and/or image for a show on your list. Only you see it, at once."""
+    return corrections_service.set_override(db, user=user, imdb_id=imdb_id, request=body)
+
+
+@router.delete("/{imdb_id}/override", status_code=status.HTTP_204_NO_CONTENT)
+def delete_override(imdb_id: StrictImdbId, user: CurrentUser, db: DbSession) -> Response:
+    """Remove your personal override for a show (204 even if there was none)."""
+    corrections_service.remove_override(db, user=user, imdb_id=imdb_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

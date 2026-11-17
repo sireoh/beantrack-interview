@@ -10,6 +10,7 @@ from app.clients.tmdb import MAX_PAGE
 from app.schemas.discover import DiscoverAddRequest, DiscoverPage
 from app.schemas.movielist import MovieListEntryOut
 from app.schemas.tvlist import TvListEntryOut
+from app.services import corrections as corrections_service
 from app.services import discover as discover_service
 
 router = APIRouter(prefix="/discover", tags=["discover"])
@@ -41,7 +42,7 @@ def add_tv(
     entry = discover_service.add_tv(
         db, tmdb=tmdb, tvmaze=tvmaze, user=user, tmdb_id=body.tmdb_id, status=body.status
     )
-    return TvListEntryOut.model_validate(entry)
+    return corrections_service.tv_entry_out(db, user, entry)
 
 
 @router.post("/movies/add", response_model=MovieListEntryOut, status_code=status.HTTP_201_CREATED)

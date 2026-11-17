@@ -53,7 +53,7 @@ THE_WIRE = {
 THE_WIRE_EPISODES = [{"id": 15000, "name": "The Target", "season": 1, "number": 1, "image": None}]
 NO_IMDB_SHOW = {"id": 999, "name": "Breaking Bad: Obscure Web Series", "externals": {"imdb": None}}
 
-TV_SHOWS_BY_IMDB = {"tt0903747": BREAKING_BAD, "tt0306414": THE_WIRE}
+TV_SHOWS_BY_IMDB: dict[str, dict[str, Any]] = {"tt0903747": BREAKING_BAD, "tt0306414": THE_WIRE}
 EPISODES_BY_TVMAZE_ID = {169: BREAKING_BAD_EPISODES, 179: THE_WIRE_EPISODES}
 
 THE_MATRIX = {

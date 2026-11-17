@@ -30,7 +30,11 @@ def test_add_show_fetches_and_caches_episodes(
         "image": "https://static.tvmaze.com/bb-original.jpg",
         "score": 9.2,
         "episodes_count": 2,
+        "catalog_title": "Breaking Bad",
+        "catalog_image": "https://static.tvmaze.com/bb-original.jpg",
     }
+    assert entry["override"] is None
+    assert entry["override_active"] is False
 
     show = db.get(TvShow, "tt0903747")
     assert show is not None and show.tvmaze_id == 169
