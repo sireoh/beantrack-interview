@@ -1,0 +1,64 @@
+from fastapi import APIRouter, Response, status
+
+from app.api.deps import CurrentUser, DbSession, TvMaze
+from app.schemas.common import ImdbId, StatusUpdateRequest
+from app.schemas.tvlist import (
+    EpisodeOut,
+    TvListAddRequest,
+    TvListEntryOut,
+    TvListOut,
+    TvProgressRequest,
+)
+from app.services import lists as list_service
+
+router = APIRouter(prefix="/tvlist", tags=["tvlist"])
+
+
+@router.get("", response_model=TvListOut)
+def get_tvlist(user: CurrentUser, db: DbSession) -> TvListOut:
+    """The logged-in user's full TV list."""
+    return TvListOut.model_validate(list_service.get_tvlist(db, user))
+
+
+@router.post("/add", response_model=TvListEntryOut, status_code=status.HTTP_201_CREATED)
+def add_to_tvlist(
+    body: TvListAddRequest, user: CurrentUser, db: DbSession, tvmaze: TvMaze
+) -> TvListEntryOut:
+    """Add a show from the supplied catalog data to the logged-in user's TV list."""
+    entry = list_service.add_tvshow(db, tvmaze=tvmaze, user=user, request=body)
+    return TvListEntryOut.model_validate(entry)
+
+
+@router.get("/{imdb}/episodes", response_model=list[EpisodeOut])
+def get_episodes(imdb: ImdbId, _user: CurrentUser, db: DbSession) -> list[EpisodeOut]:
+    """Return the cached episodes for a show identified by IMDb id."""
+    episodes = list_service.get_episodes(db, imdb)
+    return [EpisodeOut.model_validate(episode) for episode in episodes]
+
+
+@router.patch("/{imdb}/progress", response_model=TvListEntryOut)
+def update_progress(
+    imdb: ImdbId,
+    body: TvProgressRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> TvListEntryOut:
+    """Update a user's clamped episode progress and cached metadata."""
+    entry = list_service.update_tv_progress(db, user=user, imdb=imdb, request=body)
+    return TvListEntryOut.model_validate(entry)
+
+
+@router.patch("/{imdb}/status", response_model=TvListEntryOut)
+def update_status(
+    imdb: ImdbId, body: StatusUpdateRequest, user: CurrentUser, db: DbSession
+) -> TvListEntryOut:
+    """Change the watch status of a show in the logged-in user's TV list."""
+    entry = list_service.update_tv_status(db, user=user, imdb=imdb, status=body.status)
+    return TvListEntryOut.model_validate(entry)
+
+
+@router.delete("/{imdb}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_from_tvlist(imdb: ImdbId, user: CurrentUser, db: DbSession) -> Response:
+    """Remove a show from the logged-in user's TV list."""
+    list_service.delete_tvshow(db, user=user, imdb=imdb)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

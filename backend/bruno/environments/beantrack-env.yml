@@ -1,0 +1,8 @@
+name: beantrack-env
+variables:
+  - name: uri
+    value: http://127.0.0.1:8000
+    description: ""
+  - name: cookie_value
+    value: 4tX9c6llo0ZspZ9UDlvQgccBNfIIfoYDFiYMwL0zJMU
+    description: ""
